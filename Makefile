@@ -33,13 +33,19 @@ $(PREFIX)beast-peer.pem: $(PREFIX)intermediate-ca.pem $(PREFIX)intermediate-ca-k
 $(PREFIX)beast-client.pem: $(PREFIX)intermediate-ca.pem $(PREFIX)intermediate-ca-key.pem cfssl.json beast.json
 	cfssl gencert -ca $(PREFIX)intermediate-ca.pem -ca-key $(PREFIX)intermediate-ca-key.pem -config cfssl.json -profile=client beast.json | cfssljson -bare $(PREFIX)beast-client
 
-.PHONY: install uninstall
+.PHONY: install install-ca install-intermediate-ca install-beast
 
-install:
+install: install-ca install-intermediate-ca install-beast
+
+install-ca:
 	install -o root -m 644 $(PREFIX)ca.pem $(SYSTEM_CERT_FOLDER)/$(PREFIX)ca.pem
 	install -o root -g ssl-cert -m 640 $(PREFIX)ca.pem $(SYSTEM_KEY_FOLDER)/$(PREFIX)ca-key.pem
+
+install-intermediate-ca:
 	install -o root -m 644 $(PREFIX)intermediate-ca.pem $(SYSTEM_CERT_FOLDER)/$(PREFIX)intermediate-ca.pem
 	install -o root -g ssl-cert -m 640 $(PREFIX)intermediate-ca.pem $(SYSTEM_KEY_FOLDER)/$(PREFIX)intermediate-ca-key.pem
+
+install-beast:
 	install -o root -m 644 $(PREFIX)beast-server.pem $(SYSTEM_CERT_FOLDER)/$(PREFIX)beast-server.pem
 	install -o root -g ssl-cert -m 640 $(PREFIX)beast-server-key.pem $(SYSTEM_KEY_FOLDER)/$(PREFIX)beast-server-key.pem
 	install -o root -m 644 $(PREFIX)beast-peer.pem $(SYSTEM_CERT_FOLDER)/$(PREFIX)beast-peer.pem
@@ -47,17 +53,31 @@ install:
 	install -o root -m 644 $(PREFIX)beast-client.pem $(SYSTEM_CERT_FOLDER)/$(PREFIX)beast-client.pem
 	install -o root -g ssl-cert -m 640 $(PREFIX)beast-client-key.pem $(SYSTEM_KEY_FOLDER)/$(PREFIX)beast-client-key.pem
 
-uninstall:
+.PHONY: uninstall uninstall-ca uninstall-intermediate-ca uninstall-beast
+
+uninstall: uninstall-ca uninstall-intermediate-ca uninstall-beast
+
+uninstall-ca:
 	rm $(SYSTEM_CERT_FOLDER)/$(PREFIX)ca.pem
 	rm $(SYSTEM_KEY_FOLDER)/$(PREFIX)ca-key.pem
+
+uninstall-intermediate-ca:
 	rm $(SYSTEM_CERT_FOLDER)/$(PREFIX)intermediate-ca.pem
 	rm $(SYSTEM_KEY_FOLDER)/$(PREFIX)intermediate-ca-key.pem
+
+uninstall-beast:
 	rm $(SYSTEM_CERT_FOLDER)/$(PREFIX)beast-server.pem
 	rm $(SYSTEM_KEY_FOLDER)/$(PREFIX)beast-server-key.pem
 	rm $(SYSTEM_CERT_FOLDER)/$(PREFIX)beast-peer.pem
 	rm $(SYSTEM_KEY_FOLDER)/$(PREFIX)beast-peer-key.pem
 	rm $(SYSTEM_CERT_FOLDER)/$(PREFIX)beast-client.pem
 	rm $(SYSTEM_KEY_FOLDER)/$(PREFIX)beast-client-key.pem
+
+install-local:
+	mkdir -p $(LOCAL_CERT_FOLDER)
+	cp $(PREFIX)beast-server.pem $(LOCAL_CERT_FOLDER)/server.pem
+	mkdir -p $(LOCAL_KEY_FOLDER)
+	cp $(PREFIX)beast-server-key.pem $(LOCAL_KEY_FOLDER)/server-key.pem
 
 .PHONY: clean
 
