@@ -1,0 +1,20 @@
+{
+    "CN": "beast.jetblack.net",
+    "key": {
+      "algo": "rsa",
+      "size": 2048
+    },
+    "names": [
+    {
+      "C": "GB",
+      "L": "London",
+      "O": "JetBlack",
+      "OU": "JetBlack Hosts",
+      "ST": "England"
+    }
+    ],
+    "hosts": [
+      "beast.jetblack.com",
+      "localhost"
+    ]
+  }

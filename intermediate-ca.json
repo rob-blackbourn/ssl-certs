@@ -1,0 +1,19 @@
+{
+    "CN": "JetBlack Intermediate CA",
+    "key": {
+      "algo": "rsa",
+      "size": 2048
+    },
+    "names": [
+      {
+        "C":  "GB",
+        "L":  "London",
+        "O":  "JetBlack",
+        "OU": "JetBlack Intermediate CA",
+        "ST": "England"
+      }
+    ],
+    "ca": {
+      "expiry": "43800h"
+    }
+  }
