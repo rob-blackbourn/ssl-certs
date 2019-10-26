@@ -6,13 +6,14 @@ PREFIX=jetblack-net-
 
 .PHONY: all
 
-all: $(PREFIX)ca.pem $(PREFIX)intermediate-ca.pem $(PREFIX)intermediate-ca-key.pem $(PREFIX)beast-server.pem $(PREFIX)beast-peer.pem $(PREFIX)beast-client.pem
+all: ca intermediate-ca beast
 	echo done
 
-.PHONY: ca intermediate-ca
+.PHONY: ca intermediate-ca beast
 
 ca: $(PREFIX)ca.pem
 intermediate-ca: $(PREFIX)intermediate-ca.pem $(PREFIX)intermediate-ca-key.pem
+beast: $(PREFIX)beast-server.pem $(PREFIX)beast-peer.pem $(PREFIX)beast-client.pem
 
 $(PREFIX)ca.pem: ca.json
 	cfssl gencert -initca ca.json | cfssljson -bare $(PREFIX)ca
