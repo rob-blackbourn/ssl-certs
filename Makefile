@@ -42,10 +42,12 @@ install: install-ca install-intermediate-ca install-beast
 
 install-ca: $(PREFIX)ca.pem $(PREFIX)ca-key.pem
 	install -o root -m 644 $(PREFIX)ca.pem $(SYSTEM_CERT_FOLDER)/$(PREFIX)ca.pem
+	install -o root -g ssl-cert -m 640 $(PREFIX)ca.csr $(SYSTEM_KEY_FOLDER)/$(PREFIX)ca.csr
 	install -o root -g ssl-cert -m 640 $(PREFIX)ca-key.pem $(SYSTEM_KEY_FOLDER)/$(PREFIX)ca-key.pem
 
 install-intermediate-ca: $(PREFIX)intermediate-ca.pem $(PREFIX)intermediate-ca-key.pem
 	install -o root -m 644 $(PREFIX)intermediate-ca.pem $(SYSTEM_CERT_FOLDER)/$(PREFIX)intermediate-ca.pem
+	install -o root -g ssl-cert -m 640 $(PREFIX)intermediate-ca.csr $(SYSTEM_KEY_FOLDER)/$(PREFIX)intermediate-ca.csr
 	install -o root -g ssl-cert -m 640 $(PREFIX)intermediate-ca-key.pem $(SYSTEM_KEY_FOLDER)/$(PREFIX)intermediate-ca-key.pem
 
 install-beast: install-beast-server install-beast-peer install-beast-client install-beast-haproxy
