@@ -1,5 +1,5 @@
 {
-    "CN": "beast.jetblack.net",
+    "CN": "FQDN",
     "key": {
       "algo": "rsa",
       "size": 2048
@@ -14,7 +14,7 @@
     }
     ],
     "hosts": [
-      "beast.jetblack.com",
+      "FQDN",
       "localhost"
     ]
   }

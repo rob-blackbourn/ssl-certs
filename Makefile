@@ -1,115 +1,148 @@
-LOCAL_CERT_FOLDER=$(HOME)/.keys
-LOCAL_KEY_FOLDER=$(HOME)/.keys
+LOCAL_FOLDER=$(HOME)/.keys
 SYSTEM_CERT_FOLDER=/etc/ssl/certs
 SYSTEM_KEY_FOLDER=/etc/ssl/private
-PREFIX=jetblack-net-
+HOSTNAME=$(shell hostname)
+FQDN=$(shell hostname -f)
+PREFIX=$(shell hostname -d | sed -e 's/\./-/g')
+HOST_JSON=$(HOSTNAME).json
+
+CA=$(PREFIX)-ca
+CA_CRT=$(CA).pem
+CA_CSR=$(CA).csr
+CA_KEY=$(CA)-key.pem
+
+INTERMEDIATE_CA=$(PREFIX)-intermediate-ca
+INTERMEDIATE_CA_CRT=$(INTERMEDIATE_CA).pem
+INTERMEDIATE_CA_CSR=$(INTERMEDIATE_CA).csr
+INTERMEDIATE_CA_KEY=$(INTERMEDIATE_CA)-key.pem
+
+HOST_SERVER=$(PREFIX)-$(HOSTNAME)-server
+HOST_SERVER_CRT=$(HOST_SERVER).pem
+HOST_SERVER_CSR=$(HOST_SERVER).csr
+HOST_SERVER_KEY=$(HOST_SERVER)-key.pem
+
+HOST_PEER=$(PREFIX)-$(HOSTNAME)-peer
+HOST_PEER_CRT=$(HOST_PEER).pem
+HOST_PEER_CSR=$(HOST_PEER).csr
+HOST_PEER_KEY=$(HOST_PEER)-key.pem
+
+HOST_CLIENT=$(PREFIX)-$(HOSTNAME)-client
+HOST_CLIENT_CRT=$(HOST_CLIENT).pem
+HOST_CLIENT_CSR=$(HOST_CLIENT).csr
+HOST_CLIENT_KEY=$(HOST_CLIENT)-key.pem
+
+HOST_HAPROXY_PEM=$(PREFIX)-$(HOSTNAME)-haproxy.pem
 
 .PHONY: all
 
-all: ca intermediate-ca beast
+all: ca intermediate-ca $(HOSTNAME)
 	echo done
 
-.PHONY: ca intermediate-ca beast
+.PHONY: ca intermediate-ca $(HOSTNAME)
 
-ca: $(PREFIX)ca.pem
-intermediate-ca: $(PREFIX)intermediate-ca.pem $(PREFIX)intermediate-ca-key.pem
-beast: $(PREFIX)beast-server.pem $(PREFIX)beast-peer.pem $(PREFIX)beast-client.pem $(PREFIX)beast-haproxy.pem
+ca: $(CA_CRT)
+intermediate-ca: $(INTERMEDIATE_CA_CRT) $(INTERMEDIATE_CA_KEY)
+$(HOSTNAME): $(HOST_SERVER_CRT) $(HOST_PEER_CRT) $(HOST_CLIENT_CRT) $(HOST_HAPROXY_PEM)
 
-$(PREFIX)ca.pem: ca.json
-	cfssl gencert -initca ca.json | cfssljson -bare $(PREFIX)ca
+$(CA_CRT): ca.json
+	cfssl gencert -initca ca.json | cfssljson -bare $(CA)
 
-$(PREFIX)intermediate-ca.pem: intermediate-ca.json
-	cfssl gencert -initca intermediate-ca.json | cfssljson -bare $(PREFIX)intermediate-ca
+$(INTERMEDIATE_CA_CRT): intermediate-ca.json
+	cfssl gencert -initca intermediate-ca.json | cfssljson -bare $(INTERMEDIATE_CA)
 
-$(PREFIX)intermediate-ca-key.pem: $(PREFIX)intermediate-ca.pem $(PREFIX)ca.pem cfssl.json $(PREFIX)intermediate-ca.csr
-	cfssl sign -ca $(PREFIX)ca.pem -ca-key $(PREFIX)ca-key.pem -config cfssl.json -profile intermediate-ca $(PREFIX)intermediate-ca.csr | cfssljson -bare $(PREFIX)intermediate-ca
+$(INTERMEDIATE_CA_KEY): $(INTERMEDIATE_CA_CRT) $(CA_CRT) cfssl.json $(INTERMEDIATE_CA_CSR)
+	cfssl sign -ca $(CA_CRT) -ca-key $(CA_KEY) -config cfssl.json -profile intermediate-ca $(INTERMEDIATE_CA_CSR) | cfssljson -bare $(INTERMEDIATE_CA)
 
-$(PREFIX)beast-server.pem: $(PREFIX)intermediate-ca.pem $(PREFIX)intermediate-ca-key.pem cfssl.json beast.json
-	cfssl gencert -ca $(PREFIX)intermediate-ca.pem -ca-key $(PREFIX)intermediate-ca-key.pem -config cfssl.json -profile=server beast.json | cfssljson -bare $(PREFIX)beast-server
+$(HOST_JSON): host.json.template
+	sed -e "s/FQDN/$(FQDN)/g" < host.json.template > $(HOST_JSON)
 
-$(PREFIX)beast-peer.pem: $(PREFIX)intermediate-ca.pem $(PREFIX)intermediate-ca-key.pem cfssl.json beast.json
-	cfssl gencert -ca $(PREFIX)intermediate-ca.pem -ca-key $(PREFIX)intermediate-ca-key.pem -config cfssl.json -profile=peer beast.json | cfssljson -bare $(PREFIX)beast-peer
+$(HOST_SERVER_CRT): $(INTERMEDIATE_CA_CRT) $(INTERMEDIATE_CA_KEY) cfssl.json $(HOST_JSON)
+	cfssl gencert -ca $(INTERMEDIATE_CA_CRT) -ca-key $(INTERMEDIATE_CA_KEY) -config cfssl.json -profile=server $(HOST_JSON) | cfssljson -bare $(HOST_SERVER)
 
-$(PREFIX)beast-client.pem: $(PREFIX)intermediate-ca.pem $(PREFIX)intermediate-ca-key.pem cfssl.json beast.json
-	cfssl gencert -ca $(PREFIX)intermediate-ca.pem -ca-key $(PREFIX)intermediate-ca-key.pem -config cfssl.json -profile=client beast.json | cfssljson -bare $(PREFIX)beast-client
+$(HOST_PEER_CRT): $(INTERMEDIATE_CA_CRT) $(INTERMEDIATE_CA_KEY) cfssl.json $(HOST_JSON)
+	cfssl gencert -ca $(INTERMEDIATE_CA_CRT) -ca-key $(INTERMEDIATE_CA_KEY) -config cfssl.json -profile=peer $(HOST_JSON) | cfssljson -bare $(HOST_PEER)
 
-$(PREFIX)beast-haproxy.pem: $(PREFIX)beast-server.pem $(PREFIX)beast-server-key.pem $(PREFIX)intermediate-ca.pem $(PREFIX)ca.pem
-	cat $(PREFIX)beast-server.pem $(PREFIX)beast-server-key.pem $(PREFIX)intermediate-ca.pem $(PREFIX)ca.pem > $(PREFIX)beast-haproxy.pem
+$(HOST_CLIENT_CRT): $(INTERMEDIATE_CA_CRT) $(INTERMEDIATE_CA_KEY) cfssl.json $(HOST_JSON)
+	cfssl gencert -ca $(INTERMEDIATE_CA_CRT) -ca-key $(INTERMEDIATE_CA_KEY) -config cfssl.json -profile=client $(HOST_JSON) | cfssljson -bare $(HOST_CLIENT)
 
-.PHONY: install install-ca install-intermediate-ca install-beast
+$(HOST_HAPROXY_PEM): $(CA_CRT) $(INTERMEDIATE_CA_CRT) $(HOST_SERVER_CRT) $(HOST_SERVER_KEY)
+	cat $(HOST_SERVER_CRT) $(HOST_SERVER_KEY) $(INTERMEDIATE_CA_CRT) $(CA_CRT) > $(HOST_HAPROXY_PEM)
 
-install: install-ca install-intermediate-ca install-beast
+.PHONY: install install-ca install-intermediate-ca install-host
 
-install-ca: $(PREFIX)ca.pem $(PREFIX)ca-key.pem
-	install -o root -m 644 $(PREFIX)ca.pem $(SYSTEM_CERT_FOLDER)/$(PREFIX)ca.pem
-	install -o root -g ssl-cert -m 640 $(PREFIX)ca.csr $(SYSTEM_KEY_FOLDER)/$(PREFIX)ca.csr
-	install -o root -g ssl-cert -m 640 $(PREFIX)ca-key.pem $(SYSTEM_KEY_FOLDER)/$(PREFIX)ca-key.pem
+install: install-ca install-intermediate-ca install-host
 
-install-intermediate-ca: $(PREFIX)intermediate-ca.pem $(PREFIX)intermediate-ca-key.pem
-	install -o root -m 644 $(PREFIX)intermediate-ca.pem $(SYSTEM_CERT_FOLDER)/$(PREFIX)intermediate-ca.pem
-	install -o root -g ssl-cert -m 640 $(PREFIX)intermediate-ca.csr $(SYSTEM_KEY_FOLDER)/$(PREFIX)intermediate-ca.csr
-	install -o root -g ssl-cert -m 640 $(PREFIX)intermediate-ca-key.pem $(SYSTEM_KEY_FOLDER)/$(PREFIX)intermediate-ca-key.pem
+install-ca: $(CA_CRT) $(CA_KEY)
+	install -o root -m 644 $(CA_CRT) $(SYSTEM_CERT_FOLDER)/$(CA_CRT)
+	install -o root -g ssl-cert -m 640 $(CA_CSR) $(SYSTEM_KEY_FOLDER)/$(CA_CSR)
+	install -o root -g ssl-cert -m 640 $(CA_KEY) $(SYSTEM_KEY_FOLDER)/$(CA_KEY)
 
-install-beast: install-beast-server install-beast-peer install-beast-client install-beast-haproxy
+install-intermediate-ca: $(INTERMEDIATE_CA_CRT) $(INTERMEDIATE_CA_KEY)
+	install -o root -m 644 $(INTERMEDIATE_CA_CRT) $(SYSTEM_CERT_FOLDER)/$(INTERMEDIATE_CA_CRT)
+	install -o root -g ssl-cert -m 640 $(INTERMEDIATE_CA_CSR) $(SYSTEM_KEY_FOLDER)/$(INTERMEDIATE_CA_CSR)
+	install -o root -g ssl-cert -m 640 $(INTERMEDIATE_CA_KEY) $(SYSTEM_KEY_FOLDER)/$(INTERMEDIATE_CA_KEY)
 
-.PHONY: install-beast-server install-beast-peer install-beast-client install-beast-haproxy
+install-host: install-host-server install-host-peer install-host-client install-host-haproxy
 
-install-beast-server: $(PREFIX)beast-server.pem $(PREFIX)beast-server-key.pem
-	install -o root -m 644 $(PREFIX)beast-server.pem $(SYSTEM_CERT_FOLDER)/$(PREFIX)beast-server.pem
-	install -o root -g ssl-cert -m 640 $(PREFIX)beast-server-key.pem $(SYSTEM_KEY_FOLDER)/$(PREFIX)beast-server-key.pem
+.PHONY: install-host-server install-host-peer install-host-client install-host-haproxy
 
-install-beast-peer: $(PREFIX)beast-peer.pem $(PREFIX)beast-peer-key.pem
-	install -o root -m 644 $(PREFIX)beast-peer.pem $(SYSTEM_CERT_FOLDER)/$(PREFIX)beast-peer.pem
-	install -o root -g ssl-cert -m 640 $(PREFIX)beast-peer-key.pem $(SYSTEM_KEY_FOLDER)/$(PREFIX)beast-peer-key.pem
+install-host-server: $(HOST_SERVER_CRT) $(HOST_SERVER_KEY)
+	install -o root -m 644 $(HOST_SERVER_CRT) $(SYSTEM_CERT_FOLDER)/$(HOST_SERVER_CRT)
+	install -o root -g ssl-cert -m 640 $(HOST_SERVER_KEY) $(SYSTEM_KEY_FOLDER)/$(HOST_SERVER_KEY)
 
-install-beast-client: $(PREFIX)beast-client.pem $(PREFIX)beast-client-key.pem
-	install -o root -m 644 $(PREFIX)beast-client.pem $(SYSTEM_CERT_FOLDER)/$(PREFIX)beast-client.pem
-	install -o root -g ssl-cert -m 640 $(PREFIX)beast-client-key.pem $(SYSTEM_KEY_FOLDER)/$(PREFIX)beast-client-key.pem
+install-host-peer: $(HOST_PEER_CRT) $(HOST_PEER_KEY)
+	install -o root -m 644 $(HOST_PEER_CRT) $(SYSTEM_CERT_FOLDER)/$(HOST_PEER_CRT)
+	install -o root -g ssl-cert -m 640 $(HOST_PEER_KEY) $(SYSTEM_KEY_FOLDER)/$(HOST_PEER_KEY)
 
-install-beast-haproxy: $(PREFIX)beast-haproxy.pem
-	install -o root -m 640 $(PREFIX)beast-haproxy.pem $(SYSTEM_KEY_FOLDER)/$(PREFIX)beast-haproxy.pem
+install-host-client: $(HOST_CLIENT_CRT) $(HOST_CLIENT_KEY)
+	install -o root -m 644 $(HOST_CLIENT_CRT) $(SYSTEM_CERT_FOLDER)/$(HOST_CLIENT_CRT)
+	install -o root -g ssl-cert -m 640 $(HOST_CLIENT_KEY) $(SYSTEM_KEY_FOLDER)/$(HOST_CLIENT_KEY)
+
+install-host-haproxy: $(HOST_HAPROXY_PEM)
+	install -o root -m 640 $(HOST_HAPROXY_PEM) $(SYSTEM_KEY_FOLDER)/$(HOST_HAPROXY_PEM)
 
 .PHONY: uninstall uninstall-ca uninstall-intermediate-ca uninstall-beast
 
 uninstall: uninstall-ca uninstall-intermediate-ca uninstall-beast
 
 uninstall-ca:
-	rm $(SYSTEM_CERT_FOLDER)/$(PREFIX)ca.pem
-	rm $(SYSTEM_KEY_FOLDER)/$(PREFIX)ca-key.pem
+	rm $(SYSTEM_CERT_FOLDER)/$(CA_CRT)
+	rm $(SYSTEM_KEY_FOLDER)/$(CA_KEY)
 
 uninstall-intermediate-ca:
-	rm $(SYSTEM_CERT_FOLDER)/$(PREFIX)intermediate-ca.pem
-	rm $(SYSTEM_KEY_FOLDER)/$(PREFIX)intermediate-ca-key.pem
+	rm $(SYSTEM_CERT_FOLDER)/$(INTERMEDIATE_CA_CRT)
+	rm $(SYSTEM_KEY_FOLDER)/$(INTERMEDIATE_CA_KEY)
 
 uninstall-beast:
-	rm $(SYSTEM_CERT_FOLDER)/$(PREFIX)beast-server.pem
-	rm $(SYSTEM_KEY_FOLDER)/$(PREFIX)beast-server-key.pem
-	rm $(SYSTEM_CERT_FOLDER)/$(PREFIX)beast-peer.pem
-	rm $(SYSTEM_KEY_FOLDER)/$(PREFIX)beast-peer-key.pem
-	rm $(SYSTEM_CERT_FOLDER)/$(PREFIX)beast-client.pem
-	rm $(SYSTEM_KEY_FOLDER)/$(PREFIX)beast-client-key.pem
+	rm $(SYSTEM_CERT_FOLDER)/$(HOST_SERVER_CRT)
+	rm $(SYSTEM_KEY_FOLDER)/$(HOST_SERVER_KEY)
+	rm $(SYSTEM_CERT_FOLDER)/$(HOST_PEER_CRT)
+	rm $(SYSTEM_KEY_FOLDER)/$(HOST_PEER_KEY)
+	rm $(SYSTEM_CERT_FOLDER)/$(HOST_CLIENT_CRT)
+	rm $(SYSTEM_KEY_FOLDER)/$(HOST_CLIENT_KEY)
 
 install-local:
-	mkdir -p $(LOCAL_CERT_FOLDER)
-	cp $(PREFIX)beast-server.pem $(LOCAL_CERT_FOLDER)/server.pem
-	mkdir -p $(LOCAL_KEY_FOLDER)
-	cp $(PREFIX)beast-server-key.pem $(LOCAL_KEY_FOLDER)/server-key.pem
+	mkdir -p $(LOCAL_FOLDER)
+	cp $(HOST_SERVER_CRT) $(LOCAL_FOLDER)/server.crt
+	cp $(HOST_SERVER_KEY) $(LOCAL_FOLDER)/server.key
 
 .PHONY: clean
 
 clean:
-	rm -f $(PREFIX)ca.pem
-	rm -f $(PREFIX)ca-key.pem
-	rm -f $(PREFIX)ca.csr
-	rm -f $(PREFIX)intermediate-ca.pem
-	rm -f $(PREFIX)intermediate-ca-key.pem
-	rm -f $(PREFIX)intermediate-ca.csr
-	rm -f $(PREFIX)beast-server.pem
-	rm -f $(PREFIX)beast-server-key.pem
-	rm -f $(PREFIX)beast-server.csr
-	rm -f $(PREFIX)beast-peer.pem
-	rm -f $(PREFIX)beast-peer-key.pem
-	rm -f $(PREFIX)beast-peer.csr
-	rm -f $(PREFIX)beast-client.pem
-	rm -f $(PREFIX)beast-client-key.pem
-	rm -f $(PREFIX)beast-client.csr
+	rm -f $(CA_CRT)
+	rm -f $(CA_KEY)
+	rm -f $(CA_CSR)
+	rm -f $(INTERMEDIATE_CA_CRT)
+	rm -f $(INTERMEDIATE_CA_KEY)
+	rm -f $(INTERMEDIATE_CA_CSR)
+	rm -f $(HOST_SERVER_CRT)
+	rm -f $(HOST_SERVER_KEY)
+	rm -f $(HOST_SERVER_CSR)
+	rm -f $(HOST_PEER_CRT)
+	rm -f $(HOST_PEER_KEY)
+	rm -f $(HOST_PEER_CSR)
+	rm -f $(HOST_CLIENT_CRT)
+	rm -f $(HOST_CLIENT_KEY)
+	rm -f $(HOST_CLIENT_CSR)
+	rm -f $(HOST_HAPROXY_PEM)
+	rm -f $(HOST_JSON)

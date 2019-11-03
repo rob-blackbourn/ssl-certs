@@ -2,7 +2,30 @@
 
 Configuration for making ssl certificates with cfssl.
 
+### cfssl
+
+Unfortunately, at the time of writing, the latest packaged version of cfssl
+(1.2) contains a bug that makes it impossible to create certificates with
+hosts, so the software must be installed with Go.
+
+Here si how I install cfssl on Ubuntu 18.04.
+
+```bash
+$ sudo apt install golang
+$ go get -u github.com/cloudflare/cfssl/cmd/cfssl
+$ sudo cp ~/go/bin/cfssl /usr/local/bin/cfssl
+$ go get -u github.com/cloudflare/cfssl/cmd/cfssljson
+$ sudo cp ~/go/bin/cfssljson /usr/local/bin/cfssljson
+```
+
 ## Usage
+
+### /etc/hosts
+
+If you are using '/etc/hosts' to provide your local hostname make sure the fully
+qualified domain name comes first. e.g.
+
+### Makefile
 
 With the `PREFIX=jetblack-net-` The makefile will generate the following files:
 
