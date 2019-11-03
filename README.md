@@ -1,6 +1,8 @@
 # ssl-certs
 
-Configuration for making ssl certificates with cfssl.
+A makefile for generating self signed ssl certificates for the current host with cfssl.
+
+## Prerequisites
 
 ### cfssl
 
@@ -8,7 +10,7 @@ Unfortunately, at the time of writing, the latest packaged version of cfssl
 (1.2) contains a bug that makes it impossible to create certificates with
 hosts, so the software must be installed with Go.
 
-Here si how I install cfssl on Ubuntu 18.04.
+Here is how I installed cfssl on Ubuntu 18.04.
 
 ```bash
 $ sudo apt install golang
@@ -18,52 +20,68 @@ $ go get -u github.com/cloudflare/cfssl/cmd/cfssljson
 $ sudo cp ~/go/bin/cfssljson /usr/local/bin/cfssljson
 ```
 
-## Usage
+### Fully qualified domain name
 
-### /etc/hosts
+The command `hostname -f` should produce a fully qualified domain name.
 
 If you are using '/etc/hosts' to provide your local hostname make sure the fully
 qualified domain name comes first. e.g.
 
-### Makefile
+```
+127.00.0.1     myhost.example.com myhost
+```
 
-With the `PREFIX=jetblack-net-` The makefile will generate the following files:
+If this is problematic simply hard code  the values in the Makefile. e.g.
 
-* jetblack-net-ca.pem
-* jetblack-net-ca.csr
-* jetblack-net-ca-key.pem
-* jetblack-net-intermediate-ca.pem
-* jetblack-net-intermediate-ca.csr
-* jetblack-net-intermediate-ca-key.pem
-* jetblack-net-beast-haproxy.pem
-* jetblack-net-beast-server.pem
-* jetblack-net-beast-server-key.pem
-* jetblack-net-beast-peer.pem
-* jetblack-net-beast-peer-key.pem
-* jetblack-net-beast-peer.pem
-* jetblack-net-beast-peer-key.pem
+```bash
+# If necessary manually override: HOSTNAME, FQDM, and PREFIX.
+# HOSTNAME=$(shell hostname)
+HOSTNAME=myhost
+# FQDN=$(shell hostname -f)
+FQDN=myhost.example.com
+# PREFIX=$(shell hostname -d | sed -e 's/\./-/g')
+PREFIX=example-com
+```
+
+## Makefile
+
+With `hostname -f` producing `myhost.example.com` The makefile will generate the following files:
+
+* example-com-ca.pem
+* example-com-ca.csr
+* example-com-ca-key.pem
+* example-com-intermediate-ca.pem
+* example-com-intermediate-ca.csr
+* example-com-intermediate-ca-key.pem
+* example-com-myhost-haproxy.pem
+* example-com-myhost-server.pem
+* example-com-myhost-server-key.pem
+* example-com-myhost-peer.pem
+* example-com-myhost-peer-key.pem
+* example-com-myhost-peer.pem
+* example-com-myhost-peer-key.pem
 
 The *haproxy* file is a certificate chain containing in this order:
 
-* jetblack-net-beast-server.pem
-* jetblack-net-beast-server-key.pem
-* jetblack-net-intermediate-ca.pem
-* jetblack-net-ca.pem
+* example-com-myhost-server.pem
+* example-com-myhost-server-key.pem
+* example-com-intermediate-ca.pem
+* example-com-ca.pem
 
 ## Installation
 
 The `make install` task installs the following files:
 
 * /etc/ssl/certs (owner root, group root, mode 644)
-    * jetblack-net-ca.pem
-    * jetblack-net-intermediate-ca.pem
-    * jetblack-net-beast-server.pem
-    * jetblack-net-beast-peer.pem
-    * jetblack-net-beast-peer.pem
+    * example-com-ca.pem
+    * example-com-intermediate-ca.pem
+    * example-com-myhost-server.pem
+    * example-com-myhost-peer.pem
+    * example-com-myhost-peer.pem
 * /etc/ssl/private (owner root, group ssl-cert, mode 640)
-    * jetblack-net-ca-key.pem
-    * jetblack-net-intermediate-ca-key.pem
-    * jetblack-net-beast-haproxy.pem
-    * jetblack-net-beast-server-key.pem
-    * jetblack-net-beast-peer-key.pem
-    * jetblack-net-beast-peer-key.pem
+    * example-com-ca-key.pem
+    * example-com-intermediate-ca-key.pem
+    * example-com-myhost-haproxy.pem
+    * example-com-myhost-server-key.pem
+    * example-com-myhost-peer-key.pem
+    * example-com-myhost-peer-key.pem

@@ -1,9 +1,12 @@
 LOCAL_FOLDER=$(HOME)/.keys
 SYSTEM_CERT_FOLDER=/etc/ssl/certs
 SYSTEM_KEY_FOLDER=/etc/ssl/private
+
+# If necessary manually override: HOSTNAME, FQDM, and PREFIX.
 HOSTNAME=$(shell hostname)
 FQDN=$(shell hostname -f)
 PREFIX=$(shell hostname -d | sed -e 's/\./-/g')
+
 HOST_JSON=$(HOSTNAME).json
 
 CA=$(PREFIX)-ca
