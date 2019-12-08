@@ -72,7 +72,7 @@ The *haproxy* file is a certificate chain containing in this order:
 
 The `make install` task installs the following files:
 
-* /usr/share/ca-certificates (owner root, group root, mode 644)
+* /usr/share/ca-certificates/myhost.example.com (owner root, group root, mode 644)
     * example-com-ca.pem
     * example-com-intermediate-ca.pem
     * example-com-myhost-server.pem
