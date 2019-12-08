@@ -1,11 +1,11 @@
-LOCAL_FOLDER=$(HOME)/.keys
-SYSTEM_CERT_FOLDER=/etc/ssl/certs
-SYSTEM_KEY_FOLDER=/etc/ssl/private
-
-# If necessary manually override: HOSTNAME, FQDM, and PREFIX.
+# If necessary manually override: HOSTNAME, FQDN, and PREFIX.
 HOSTNAME=$(shell hostname)
 FQDN=$(shell hostname -f)
 PREFIX=$(shell hostname -d | sed -e 's/\./-/g')
+
+LOCAL_FOLDER=$(HOME)/.keys
+SYSTEM_CERT_FOLDER=/usr/share/ca-certificates/$(FQDN)
+SYSTEM_KEY_FOLDER=/etc/ssl/private
 
 HOST_JSON=$(HOSTNAME).json
 
@@ -38,8 +38,13 @@ HOST_HAPROXY_PEM=$(PREFIX)-$(HOSTNAME)-haproxy.pem
 
 .PHONY: all
 
-all: ca intermediate-ca $(HOSTNAME)
+all: check ca intermediate-ca $(HOSTNAME)
 	echo done
+
+.PHONY: check
+
+check:
+	test -n "$(FQDN)"
 
 .PHONY: ca intermediate-ca $(HOSTNAME)
 
@@ -76,6 +81,7 @@ $(HOST_HAPROXY_PEM): $(CA_CRT) $(INTERMEDIATE_CA_CRT) $(HOST_SERVER_CRT) $(HOST_
 install: install-ca install-intermediate-ca install-host
 
 install-ca: $(CA_CRT) $(CA_KEY)
+	mkdir -p $(SYSTEM_CERT_FOLDER)
 	install -o root -m 644 $(CA_CRT) $(SYSTEM_CERT_FOLDER)/$(CA_CRT)
 	install -o root -g ssl-cert -m 640 $(CA_CSR) $(SYSTEM_KEY_FOLDER)/$(CA_CSR)
 	install -o root -g ssl-cert -m 640 $(CA_KEY) $(SYSTEM_KEY_FOLDER)/$(CA_KEY)

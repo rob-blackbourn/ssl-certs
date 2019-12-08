@@ -72,7 +72,7 @@ The *haproxy* file is a certificate chain containing in this order:
 
 The `make install` task installs the following files:
 
-* /etc/ssl/certs (owner root, group root, mode 644)
+* /usr/share/ca-certificates (owner root, group root, mode 644)
     * example-com-ca.pem
     * example-com-intermediate-ca.pem
     * example-com-myhost-server.pem
@@ -85,3 +85,11 @@ The `make install` task installs the following files:
     * example-com-myhost-server-key.pem
     * example-com-myhost-peer-key.pem
     * example-com-myhost-peer-key.pem
+
+For ubuntu in will be necessary to add each file in `/etc/ca-certificates.conf`.
+
+Then call:
+
+```bash
+$ sudo update-ca-certificates
+```
