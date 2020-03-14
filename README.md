@@ -43,6 +43,10 @@ FQDN=myhost.example.com
 PREFIX=example-com
 ```
 
+### ca.json and intermediate-ca.json
+
+You will need to edit these according to your organisation.
+
 ## Makefile
 
 With `hostname -f` producing `myhost.example.com` The makefile will generate the following files:
