@@ -97,3 +97,20 @@ Then call:
 ```bash
 $ sudo update-ca-certificates
 ```
+
+### Local install
+
+To install the files in a local folder ~/.keys run `make install-local`.
+
+This will create:
+
+* ~/.keys/ca.crt
+* ~/.keys/ca.key
+* ~/.keys/client.crt
+* ~/.keys/client.key
+* ~/.keys/intermediate-ca.crt
+* ~/.keys/intermediate-ca.key
+* ~/.keys/peer.crt
+* ~/.keys/peer.key
+* ~/.keys/server.crt
+* ~/.keys/server.key

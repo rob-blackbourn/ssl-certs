@@ -142,8 +142,16 @@ uninstall-beast:
 
 install-local:
 	mkdir -p $(LOCAL_FOLDER)
+	cp $(CA_PEM) $(LOCAL_FOLDER)/ca.crt
+	cp $(CA_KEY_PEM) $(LOCAL_FOLDER)/ca.key
+	cp $(INTERMEDIATE_CA_PEM) $(LOCAL_FOLDER)/intermediate-ca.crt
+	cp $(INTERMEDIATE_CA_KEY_PEM) $(LOCAL_FOLDER)/intermediate-ca.key
 	cp $(HOST_SERVER_PEM) $(LOCAL_FOLDER)/server.crt
 	cp $(HOST_SERVER_KEY_PEM) $(LOCAL_FOLDER)/server.key
+	cp $(HOST_PEER_PEM) $(LOCAL_FOLDER)/peer.crt
+	cp $(HOST_PEER_KEY_PEM) $(LOCAL_FOLDER)/peer.key
+	cp $(HOST_CLIENT_PEM) $(LOCAL_FOLDER)/client.crt
+	cp $(HOST_CLIENT_KEY_PEM) $(LOCAL_FOLDER)/client.key
 
 .PHONY: clean
 
