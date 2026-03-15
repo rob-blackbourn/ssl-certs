@@ -28,7 +28,7 @@ If you are using '/etc/hosts' to provide your local hostname make sure the fully
 qualified domain name comes first. e.g.
 
 ```
-127.00.0.1     myhost.example.com myhost
+127.0.0.1     myhost.example.com myhost
 ```
 
 If this is problematic simply hard code  the values in the Makefile. e.g.
